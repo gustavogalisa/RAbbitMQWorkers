@@ -1,7 +1,6 @@
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.DeliverCallback;
+import com.rabbitmq.client.*;
+
+import java.io.IOException;
 
 
 public class Consumidor {
@@ -11,18 +10,22 @@ public class Consumidor {
         Connection conexao = connectionFactory.newConnection();
         Channel canal = conexao.createChannel();
 
-        String NOME_FILA = "plica"
+        final String NOME_FILA = "plica"
                 + "";
         canal.queueDeclare(NOME_FILA, false, false, false, null);
 
-        DeliverCallback callback = (consumerTag, delivery) -> {
-            String mensagem = new String(delivery.getBody());
-            System.out.println("Eu " + consumerTag + " Recebi: " + mensagem);
+        DeliverCallback callback = new DeliverCallback() {
+            public void handle(String consumerTag, Delivery delivery) throws IOException {
+                String mensagem = new String(delivery.getBody());
+                System.out.println("Eu " + consumerTag + " Recebi: " + mensagem);
+            }
         };
 
         // fila, noAck, callback, callback em caso de cancelamento (por exemplo, a fila foi deletada)
-        canal.basicConsume(NOME_FILA, true, callback, consumerTag -> {
-            System.out.println("Cancelaram a fila: " + NOME_FILA);
+        canal.basicConsume(NOME_FILA, true, callback, new CancelCallback() {
+            public void handle(String consumerTag) throws IOException {
+                System.out.println("Cancelaram a fila: " + NOME_FILA);
+            }
         });
     }
 }
